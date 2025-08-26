@@ -1,0 +1,132 @@
+{
+    "metadata": {
+        "description": "Configuration des requêtes Athena pour POLCO - Analyse des magasins Decathlon",
+        "version": "1.0",
+        "author": "POLCO Team",
+        "updated_date": "2025-08-25"
+    },
+    "default_config": {
+        "database": "askr",
+        "workgroup": "cebitools-askr",
+        "date_offset_days": -3,
+        "batch_size": 50
+    },
+    "queries": [
+        {
+            "id": "nombre_de_comptes_total_pour_le_magasin",
+            "name": "Nombre de comptes total pour le magasin",
+            "description": "Nombre de comptes total pour le magasin à J-3.",
+            "sql_template": "SELECT \"date\", SUM(\"total_accounts\") AS \"nombre_comptes_totales\" FROM \"AwsDataCatalog\".\"askr\".\"communities\" WHERE \"store_id\" = '{store_id}' AND \"date\" = date_add('day', -3, current_date) GROUP BY \"date\"",
+            "expected_columns": ["date", "nombre_comptes_totales"],
+            "output_filename": "nombre_de_comptes_total_pour_le_magasin"
+        },
+        {
+            "id": "frequence_de_visite_annuelle",
+            "name": "Trafic annuel du magasin",
+            "description": "Nombre total de visites dans le magasin sur les 12 derniers mois.",
+            "sql_template": "SELECT SUM(\"traffic\") AS \"trafic_annuel\" FROM \"AwsDataCatalog\".\"askr\".\"traffic\" WHERE \"store_id\" = '{store_id}' AND \"start_time\" >= (CURRENT_DATE - INTERVAL '12' MONTH)",
+            "expected_columns": ["trafic_annuel"],
+            "output_filename": "frequence_de_visite_annuelle"
+        },
+        {
+            "id": "nombre_de_transactions_digitales",
+            "name": "Nombre de transactions digitales",
+            "description": "Nombre de transactions sur les canaux digitaux (ClickAndCollect, etc.) sur les 12 derniers mois.",
+            "sql_template": "SELECT COUNT(DISTINCT \"the_transaction_id\") AS \"nombre_transactions_digitales\" FROM \"AwsDataCatalog\".\"askr\".\"perfeco\" WHERE \"store_id\"='{store_id}' AND \"channel\" IN ('ClickAndCollect', 'CatchmentArea', 'ProEcommerce') AND \"tdt_date_to_ordered\" >= date_add('month', -12, current_date)",
+            "expected_columns": ["nombre_transactions_digitales"],
+            "output_filename": "nombre_de_transactions_digitales"
+        },
+        {
+            "id": "chiffre_d_affaires_omni_sur_les_12_derniers_mois",
+            "name": "Chiffre d'affaires omnicanal sur les 12 derniers mois",
+            "description": "Chiffre d'affaires omnicanal (tous canaux) sur les 12 derniers mois.",
+            "sql_template": "WITH LatestDate AS (SELECT MAX(gmv_recorded_at_date) as max_date FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\") SELECT merchant_businessunit_id, SUM(gmv_amount_euros) AS omni_gmv_last_12_months FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\", LatestDate WHERE gmv_recorded_at_date >= date_add('month', -12, LatestDate.max_date) AND gmv_recorded_at_date <= LatestDate.max_date AND merchant_businessunit_id ='{business_unit_id}' GROUP BY merchant_businessunit_id",
+            "expected_columns": ["merchant_businessunit_id", "omni_gmv_last_12_months"],
+            "output_filename": "chiffre_d_affaires_omni_sur_les_12_derniers_mois"
+        },
+        {
+            "id": "chiffre_d_affaires_omni_sur_les_12_derniers_mois_par_mois",
+            "name": "Chiffre d'affaires omnicanal mensuel",
+            "description": "CA omnicanal mensuel sur les 12 derniers mois.",
+            "sql_template": "SELECT CAST(date_trunc('month', sales.gmv_recorded_at_date) AS DATE) AS sales_month, SUM(sales.gmv_amount) AS monthly_omni_revenue FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\" AS sales CROSS JOIN (SELECT MAX(gmv_recorded_at_date) AS max_date FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\") AS latest WHERE sales.gmv_recorded_at_date >= date_add('month', -12, latest.max_date) AND sales.merchant_businessunit_id = '{business_unit_id}' GROUP BY CAST(date_trunc('month', sales.gmv_recorded_at_date) AS DATE) ORDER BY sales_month ASC",
+            "expected_columns": ["sales_month", "monthly_omni_revenue"],
+            "output_filename": "chiffre_d_affaires_omni_sur_les_12_derniers_mois_par_mois"
+        },
+        {
+            "id": "chiffre_d_affaires_instore_sur_les_12_derniers_mois",
+            "name": "Chiffre d'affaires Instore sur les 12 derniers mois",
+            "description": "CA Instore sur les 12 derniers mois.",
+            "sql_template": "SELECT SUM(sales.gmv_amount) AS total_instore_revenue_12_months FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\" AS sales CROSS JOIN (SELECT MAX(gmv_recorded_at_date) AS max_date FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\") AS latest WHERE sales.gmv_recorded_at_date >= date_add('month', -12, latest.max_date) AND sales.merchant_businessunit_id = '{business_unit_id}' AND sales.sales_support = 'InStore'",
+            "expected_columns": ["total_instore_revenue_12_months"],
+            "output_filename": "chiffre_d_affaires_instore_sur_les_12_derniers_mois"
+        },
+        {
+            "id": "chiffre_d_affaires_instore_sur_les_12_derniers_mois_par_mois",
+            "name": "Chiffre d'affaires Instore mensuel",
+            "description": "CA Instore mensuel sur les 12 derniers mois.",
+            "sql_template": "SELECT CAST(date_trunc('month', sales.gmv_recorded_at_date) AS DATE) AS sales_month, SUM(sales.gmv_amount) AS monthly_instore_revenue FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\" AS sales CROSS JOIN (SELECT MAX(gmv_recorded_at_date) AS max_date FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\") AS latest WHERE sales.gmv_recorded_at_date >= date_add('month', -12, latest.max_date) AND sales.merchant_businessunit_id = '{business_unit_id}' AND sales.sales_support = 'InStore' GROUP BY CAST(date_trunc('month', sales.gmv_recorded_at_date) AS DATE) ORDER BY sales_month ASC",
+            "expected_columns": ["sales_month", "monthly_instore_revenue"],
+            "output_filename": "chiffre_d_affaires_instore_sur_les_12_derniers_mois_par_mois"
+        },
+        {
+            "id": "classement_national_du_magasin_par_gmv",
+            "name": "Classement national du magasin par GMV",
+            "description": "Classement du magasin par rapport aux autres du pays, basé sur le GMV omnicanal des 12 derniers mois.",
+            "sql_template": "WITH RankedStores AS (SELECT store_gmv.merchant_businessunit_country_code, store_gmv.merchant_businessunit_id, store_gmv.total_gmv, RANK() OVER (PARTITION BY store_gmv.merchant_businessunit_country_code ORDER BY store_gmv.total_gmv DESC) AS gmv_rank_in_country FROM (SELECT sales.merchant_businessunit_country_code, sales.merchant_businessunit_id, SUM(sales.gmv_amount) AS total_gmv FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\" AS sales CROSS JOIN (SELECT MAX(gmv_recorded_at_date) AS max_date FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\") AS latest WHERE sales.gmv_recorded_at_date >= date_add('month', -12, latest.max_date) GROUP BY sales.merchant_businessunit_country_code, sales.merchant_businessunit_id) AS store_gmv) SELECT * FROM RankedStores WHERE merchant_businessunit_id = '{business_unit_id}'",
+            "expected_columns": ["merchant_businessunit_country_code", "merchant_businessunit_id", "total_gmv", "gmv_rank_in_country"],
+            "output_filename": "classement_national_du_magasin_par_gmv"
+        },
+        {
+            "id": "ca_par_sport",
+            "name": "CA par sport",
+            "description": "Chiffre d'affaires par sport pour le magasin sur les 12 derniers mois.",
+            "sql_template": "SELECT sales.sport_department_label, SUM(sales.gmv_amount) AS total_gmv FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\" AS sales CROSS JOIN (SELECT MAX(gmv_recorded_at_date) AS max_date FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\") AS latest WHERE sales.gmv_recorded_at_date >= date_add('month', -12, latest.max_date) AND sales.sport_department_label IS NOT NULL AND sales.merchant_businessunit_id = '{business_unit_id}' GROUP BY sales.sport_department_label ORDER BY total_gmv DESC",
+            "expected_columns": ["sport_department_label", "total_gmv"],
+            "output_filename": "ca_par_sport"
+        },
+        {
+            "id": "repartition_du_ca_par_type_de_marque",
+            "name": "Répartition du CA par type de marque (MDD, etc.)",
+            "description": "Répartition du CA par type de marque pour le magasin sur les 12 derniers mois.",
+            "sql_template": "SELECT CASE WHEN sales.brand_name IN ('QUECHUA', 'TRIBORD', 'ROCKRIDER', 'DOMYOS', 'KIPSTA', 'INESIS', 'KIPRUN', 'SOLOGNAC', 'CAPERLAN', 'ARTENGO', 'B''TWIN', 'VAN RYSEL', 'SIMOND', 'FORCLAZ', 'NABAIJI', 'KALENJI', 'WEDZE', 'OLAIAN', 'SUBEA', 'NEWFEEL', 'ITIWIT', 'FOUGANZA') THEN 'Marque Decathlon (MDD)' ELSE 'Autre Marque' END AS brand_type, SUM(sales.gmv_amount) AS total_gmv FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\" AS sales CROSS JOIN (SELECT MAX(gmv_recorded_at_date) AS max_date FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\") AS latest WHERE sales.gmv_recorded_at_date >= date_add('month', -12, latest.max_date) AND sales.merchant_businessunit_id = '{business_unit_id}' GROUP BY 1 ORDER BY total_gmv DESC",
+            "expected_columns": ["brand_type", "total_gmv"],
+            "output_filename": "repartition_du_ca_par_type_de_marque"
+        },
+        {
+            "id": "surface_de_vente",
+            "name": "Surface de vente",
+            "description": "Surface de vente du magasin en m².",
+            "sql_template": "SELECT size_sales_area FROM \"datalake_insight_analytics_core_datamart\".\"dim_business_unit\" WHERE business_unit_third_id = '{business_unit_id}'",
+            "expected_columns": ["size_sales_area"],
+            "output_filename": "surface_de_vente"
+        },
+        {
+            "id": "ca_instore_par_m2",
+            "name": "CA Instore par m²",
+            "description": "CA Instore par m² sur les 12 derniers mois.",
+            "sql_template": "WITH instore_revenue AS (SELECT sales.merchant_businessunit_id, SUM(sales.gmv_amount) AS total_instore_revenue FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\" AS sales CROSS JOIN (SELECT MAX(gmv_recorded_at_date) AS max_date FROM \"datalake_insight_analytics_core_datamart\".\"obt_sales\") AS latest WHERE sales.gmv_recorded_at_date >= date_add('month', -12, latest.max_date) AND sales.merchant_businessunit_id = '{business_unit_id}' AND sales.sales_support = 'InStore' GROUP BY sales.merchant_businessunit_id), sales_area AS (SELECT business_unit_third_id, size_sales_area FROM \"datalake_insight_analytics_core_datamart\".\"dim_business_unit\" WHERE business_unit_third_id = '{business_unit_id}') SELECT CASE WHEN sa.size_sales_area IS NULL OR sa.size_sales_area = 0 THEN 0 ELSE ir.total_instore_revenue / sa.size_sales_area END AS revenue_per_square_meter FROM instore_revenue AS ir JOIN sales_area AS sa ON ir.merchant_businessunit_id = sa.business_unit_third_id",
+            "expected_columns": ["revenue_per_square_meter"],
+            "output_filename": "ca_instore_par_m2"
+        },
+        {
+            "id": "repartition_des_genres_pour_les_comptes_du_magasin",
+            "name": "Répartition des genres pour les comptes du magasin",
+            "description": "Répartition par genre des clients ayant ce magasin comme favori.",
+            "sql_template": "WITH clients_du_magasin AS (SELECT m.gender FROM \"datalake_insight_analytics_core_datamart\".\"dim_member\" AS m INNER JOIN \"datalake_silver_customer_growth\".\"d_member_favorite_store\" AS s ON m.member_id = s.member_id INNER JOIN \"datalake_insight_analytics_core_datamart\".\"dim_business_unit\" AS bu ON s.usual_store_gln = bu.business_unit_gln WHERE bu.business_unit_third_id = '{business_unit_id}'), stats_generales AS (SELECT CAST(COUNT(CASE WHEN gender = 'male' THEN 1 END) AS REAL) as total_hommes, CAST(COUNT(CASE WHEN gender = 'female' THEN 1 END) AS REAL) as total_femmes, CAST(COUNT(*) AS REAL) AS total_general FROM clients_du_magasin) SELECT 'male' AS genre, total_hommes AS nombre_de_clients, (total_hommes * 100.0 / NULLIF(total_hommes + total_femmes, 0)) AS pourcentage_dans_le_groupe FROM stats_generales UNION ALL SELECT 'female' AS genre, total_femmes AS nombre_de_clients, (total_femmes * 100.0 / NULLIF(total_hommes + total_femmes, 0)) AS pourcentage_dans_le_groupe FROM stats_generales",
+            "expected_columns": ["genre", "nombre_de_clients", "pourcentage_dans_le_groupe"],
+            "output_filename": "repartition_des_genres_pour_les_comptes_du_magasin"
+        },
+        {
+            "id": "repartition_des_ages_pour_les_comptes_du_magasin",
+            "name": "Répartition des âges pour les comptes du magasin",
+            "description": "Répartition par tranche d'âge des clients ayant ce magasin comme favori.",
+            "sql_template": "WITH clients_du_magasin AS (SELECT (YEAR(CURRENT_DATE) - TRY_CAST(m.year_of_birth AS INTEGER)) AS age FROM \"datalake_insight_analytics_core_datamart\".\"dim_member\" AS m INNER JOIN \"datalake_silver_customer_growth\".\"d_member_favorite_store\" AS s ON m.member_id = s.member_id INNER JOIN \"datalake_insight_analytics_core_datamart\".\"dim_business_unit\" AS bu ON s.usual_store_gln = bu.business_unit_gln WHERE bu.business_unit_third_id = '{business_unit_id}') SELECT CASE WHEN age IS NULL THEN 'Âge non renseigné' WHEN age <= 17 THEN 'Moins de 18 ans' WHEN age BETWEEN 18 AND 25 THEN '18-25 ans' WHEN age BETWEEN 26 AND 35 THEN '26-35 ans' WHEN age BETWEEN 36 AND 45 THEN '36-45 ans' WHEN age BETWEEN 46 AND 55 THEN '46-55 ans' WHEN age BETWEEN 56 AND 65 THEN '56-65 ans' ELSE 'Plus de 65 ans' END AS tranche_age, COUNT(*) AS nombre_de_clients, (COUNT(*) * 100.0 / (SELECT COUNT(*) FROM clients_du_magasin)) AS pourcentage FROM clients_du_magasin GROUP BY 1 ORDER BY CASE WHEN tranche_age = 'Âge non renseigné' THEN 1 ELSE 0 END, tranche_age",
+            "expected_columns": ["tranche_age", "nombre_de_clients", "pourcentage"],
+            "output_filename": "repartition_des_ages_pour_les_comptes_du_magasin"
+        }
+    ],
+    "store_groups": {
+        "priority_stores": ["42", "6", "554", "66", "26", "225", "1975", "2361", "8", "727", "14", "468", "549", "72", "288", "353", "251", "39", "219", "354", "22", "3402", "1125", "252", "1912"],
+        "test_stores": ["1912", "42"]
+    }
+}

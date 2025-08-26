@@ -1,0 +1,158 @@
+# POLCO Project - .gitignore
+
+# ========================================
+# CREDENTIALS & SECURITY
+# ========================================
+credentials.json
+*.key
+*.pem
+*.p12
+.env
+.env.local
+.env.production
+secrets/
+keys/
+
+# ========================================
+# PYTHON
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# ========================================
+# IDE & EDITORS
+# ========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ========================================
+# LOGS & TEMPORARY FILES
+# ========================================
+*.log
+logs/
+temp/
+tmp/
+*.tmp
+*.temp
+
+# ========================================
+# DATA FILES (SENSITIVE)
+# ========================================
+data/*/
+!data/.gitkeep
+*.csv
+*.xlsx
+*.xls
+*.json
+!polco_queries_config.json
+!requirements.txt
+
+# ========================================
+# GENERATED FILES
+# ========================================
+reports_polco_3_0/
+pdfs_polco_3_0/
+analytics_charts/
+geo_maps/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf
+*.html
+
+# ========================================
+# AWS & CLOUD
+# ========================================
+.aws/
+awsume/
+aws-sso-util/
+
+# ========================================
+# TEST & DEBUG
+# ========================================
+test_*.py
+debug_*.py
+*.test
+.coverage
+.pytest_cache/
+htmlcov/
+
+# ========================================
+# BACKUP FILES
+# ========================================
+*.bak
+*.backup
+*.old
+*.orig
+
+# ========================================
+# OS SPECIFIC
+# ========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ========================================
+# PROJECT SPECIFIC
+# ========================================
+# Exclude specific POLCO files that might contain sensitive data
+polco_mag_test*.csv
+exemple_retour_captation/
+drive-download-*/
+
+# ========================================
+# KEEP IMPORTANT FILES
+# ========================================
+!README.md
+!requirements.txt
+!polco_queries_config.json
+!polcoFR.txt
+!prompts/
+!Decathlon_Logo24.svg
