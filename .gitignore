@@ -146,6 +146,7 @@ Thumbs.db
 polco_mag_test*.csv
 exemple_retour_captation/
 drive-download-*/
+*.pkg
 
 # ========================================
 # KEEP IMPORTANT FILES
